@@ -18,20 +18,42 @@ router.get('/', ({ url }) => {
 router.get('/list', async () => {
     const keys = await NOTES.list() // 获取所有笔记的键
 
+    // 格式化时间为东八区 (UTC+8)
+    const formatTime = (timestamp) => {
+        if (!timestamp) return 'N/A';
+        
+        // 创建UTC时间对象
+        const date = new Date(timestamp * 1000);
+        
+        // 获取UTC时间的各个部分
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        const hours = String(date.getUTCHours() + 8).padStart(2, '0'); // 增加8小时到UTC时间
+        const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+        const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+        
+        // 处理超过24小时的情况（跨天）
+        let adjustedHours = parseInt(hours);
+        let adjustedDay = parseInt(day);
+        
+        if (adjustedHours >= 24) {
+            adjustedHours -= 24;
+            adjustedDay += 1;
+        }
+        
+        return `${year}-${month}-${String(adjustedDay).padStart(2, '0')} ${String(adjustedHours).padStart(2, '0')}:${minutes}:${seconds}`;
+    };
+
     // 生成表格行，每行显示每个键的所有字段信息
     const rows = keys.keys.map(key => `
       <tr>
         <td><a href="/${key.name}">${key.name}</a></td>
-        <td>${key.metadata ? (() => {
-            const date = new Date(key.metadata.updateAt * 1000);
-            const pad = num => num.toString().padStart(2, '0');
-            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-        })() : 'N/A'}
-        </td>
+        <td>${formatTime(key.metadata?.updateAt)}</td>
       </tr>
-    `).join('<br>')
+    `).join(''); // 修正：直接拼接行，不需要<br>
 
-    // 生成包含表格的HTML
+    // 生成包含表格的HTML（保持原有内容不变）
     const html = `
       <!DOCTYPE html>
       <html>
